@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>1</title>
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<link href="css/styles.css" rel="stylesheet">
+	<script src="js/vue.js"></script>
+</head>
+
+<body>
+	<div class="container">
+		<div class="sample">
+			<div class="Todo">
+				<h1>Счетчик задач</h1>
+
+				<div class="input-group mb-3 mt-3">
+					<input type="text" class="form-control" placeholder="Название задачи" aria-label="Название задачи"
+						aria-describedby="button-addon2" v-model="taskTitle">
+					<input type="text" class="form-control col-3" placeholder="Количество" aria-label="Количество"
+						:class="maxStyleError" aria-describedby="button-addon2" v-model.number="taskMax"
+						@keypress="isNumber(evt)">
+					<input type="text" class="form-control col-2" placeholder="Единицы" aria-label="Количество"
+						aria-describedby="button-addon2" v-model="taskEnding">
+					<button class="btn btn-outline-success" type="button" id="button-addon2"
+						@click.prevent="addTask">Добавить</button>
+				</div>
+			</div>
+			<div class="form-check mb-3">
+				<input class="form-check-input" type="checkbox" value="true" v-model="saveEnding">
+				<label class="form-check-label" for="flexCheckDefault">
+					Сохранять единицы
+				</label>
+			</div>
+			<div v-show="!maxNumber" style="color:red; margin: 10px">
+				Вводите только цифры
+			</div>
+
+			<app-action :task-idx="action.taskIdx" :task-title="action.taskTitle" :task-current="action.taskCurrent"
+				:task-max="action.taskMax" :task-ending="action.taskEnding" v-for="action, i in todoList"
+				:key="action.taskIdx" @step="makeStep(i)">
+			</app-action>
+		</div>
+	</div>
+	<script>
+		const AppAction = {
+			props: {
+				taskIdx: Number,
+				taskTitle: String,
+				taskCurrent: Number,
+				taskMax: [String, Number],
+				taskEnding: String,
+			},
+
+			/* html */
+			template: `<div class="action">
+					<div class="alert" :class="colorClass">
+						<h2>{{ taskTitle }}</h2>
+						<div class="progress">
+							<div :style="styleProgressBar" class="progress-bar">
+							</div>
+						</div>
+						<hr>
+						<h3 v-if="taskCurrent == taskMax">Всё сделано!</h3>
+						<button v-if="taskCurrent != taskMax" type="button" class="btn btn-primary" @click.prevent='makeNextStep'>
+							Я сделал! {{taskCurrent}} / {{taskMax}} {{taskEnding}}
+						</button>
+						
+						</div>
+				</div>`,
+			computed: {
+				rel() {
+					return this.taskCurrent / this.taskMax
+				},
+				styleProgressBar() {
+					return { width: (this.rel * 100) + '%' }
+				},
+				colorClass() {
+					return {
+						'alert-danger': this.rel < 0.25,
+						'alert-warning': this.rel >= 0.25 && this.rel < 0.75,
+						'alert-success': this.rel >= 0.75
+					}
+				},
+			},
+
+			methods: {
+				makeNextStep(i) {
+					this.$emit('step', i);
+				}
+			}
+
+		}
+
+		Vue.createApp({
+			components: {
+				AppAction
+			},
+			data: () => ({
+				todoList: [],
+				taskIdx: 0,
+				taskTitle: '',
+				taskCurrent: 0,
+				taskMax: '',
+				taskEnding: '',
+				maxNumber: true,
+				saveEnding: false
+
+			}),
+			computed: {
+				maxStyleError() {
+					return this.maxNumber ? '' : "is-invalid"
+				},
+			},
+			methods: {
+				makeStep(i) {
+					console.log(i)
+					let step = this.todoList[i];
+
+					if (step.taskCurrent < step.taskMax) {
+						step.taskCurrent++;
+						if (step.taskCurrent == step.taskMax) {
+
+							setTimeout(() => { this.todoList.splice(i, 1) }, 1000)
+
+						}
+					}
+				},
+				resetDataWithSave() {
+					this.taskTitle = ''
+					this.taskCurrent = 0
+					this.taskMax = ''
+				},
+				resetData() {
+					this.taskTitle = ''
+					this.taskCurrent = 0
+					this.taskMax = ''
+					this.taskEnding = ''
+				},
+
+				isNumber(evt) {
+					evt = (evt) ? evt : window.event;
+					var charCode = (evt.which) ? evt.which : evt.keyCode;
+					if ((charCode > 31 && (charCode < 48 || charCode > 57)) && charCode !== 46) {
+						evt.preventDefault();
+						this.maxNumber = false
+					} else {
+						this.maxNumber = true
+						return true;
+					}
+				},
+				addTask() {
+					if (this.taskTitle != '' && this.taskMax != null) {
+						let task = {
+							taskIdx: this.taskIdx,
+							taskTitle: this.taskTitle,
+							taskCurrent: this.taskCurrent,
+							taskMax: this.taskMax,
+							taskEnding: this.taskEnding,
+						}
+						this.todoList.unshift(task)
+						this.taskIdx += 1
+						if (this.saveEnding) {
+							this.resetDataWithSave()
+						} else {
+							this.resetData()
+						}
+					}
+				}
+			},
+
+		}).mount('.sample');
+
+	</script>
+</body>
+
+</html>
